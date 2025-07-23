@@ -3,7 +3,7 @@ import re
 import base64
 from openai import OpenAI
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 def convert_inline_latex(text: str) -> str:
     pattern = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
