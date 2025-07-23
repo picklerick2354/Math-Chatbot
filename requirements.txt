@@ -1,4 +1,4 @@
-Streamlit as st
+Streamlit
 re
 base64
-openai as OpenAI
+openai
