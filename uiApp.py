@@ -3,19 +3,30 @@ import re
 import base64
 from openai import OpenAI
 
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+# ✅ Load API key securely from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def convert_inline_latex(text: str) -> str:
     pattern = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
-    return pattern.sub(r'$$', text)
+    return pattern.sub(r'$$', text)
 
 def call_openai_math_solver(prompt_text: str):
     try:
+        formatted_prompt = f"""
+Solve the following math problem step by step:
+
+{prompt_text}
+
+Formatting rules you must follow:
+- Wrap ALL mathematical expressions, equations, and fractions in display-style LaTeX using $$...$$ only.
+- Do NOT use inline math ($...$), \\[...\\], or \\(...\\).
+- Each equation should be on its own line inside $$...$$.
+- Explanations must be plain text only (no LaTeX).
+- Do not include code fences, markdown, or backticks.
+"""
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "user", "content": prompt_text}
-            ],
+            messages=[{"role": "user", "content": formatted_prompt}],
             temperature=0.3
         )
         return response.choices[0].message.content.strip()
@@ -28,11 +39,22 @@ def call_openai_vision_solver(image_bytes):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Solve the following equation step-by-step: given in the image. Use LaTeX formatting with $$...$$ where appropriate."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a math solver. Always solve equations step-by-step "
+                        "and follow strict formatting rules:\n"
+                        "- Use display-style LaTeX with $$...$$ for ALL math.\n"
+                        "- Do NOT use inline math ($...$), \\[...\\], or \\(...\\).\n"
+                        "- Each equation must be on its own line inside $$...$$.\n"
+                        "- Explanations must be plain text only.\n"
+                        "- Do not include code fences, markdown, or backticks."
+                    )
+                },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Solve the following equation step-by-step: given in the image. Use display-style LaTeX formatting with $$...$$ where appropriate."},
+                        {"type": "text", "text": "Solve the math problem in this image step by step."},
                         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_img}"}}
                     ]
                 }
@@ -44,11 +66,8 @@ def call_openai_vision_solver(image_bytes):
         return f"⚠️ Vision error: {str(e)}"
 
 def response_formatter(content: str):
-    # Fix for improperly wrapped LaTeX in brackets or parentheses
-    content = re.sub(r"\[\s*([^\[\]]*\\[^\[\]]*)\s*\]", r"$$\1$$", content)  # Convert [ ... ] to $$ ... $$
-    content = re.sub(r"\((x\s*=.*?)\)", r"$$\1$$", content)  # Convert (x = ...) to $$x = ...$$
-
-    # Render LaTeX properly
+    content = re.sub(r"\[\s*([^\[\]]*\\[^\[\]]*)\s*\]", r"$$\1$$", content)
+    content = re.sub(r"\((x\s*=.*?)\)", r"$$\1$$", content)
     pattern = re.compile(r"(\$\$.*?\$\$|\$.*?\$)", re.DOTALL)
     parts = pattern.split(content)
     for part in parts:
@@ -57,7 +76,8 @@ def response_formatter(content: str):
         elif part.startswith("$") and part.endswith("$"):
             st.latex(part[1:-1])
         else:
-            st.markdown(part.strip())
+            if part.strip():
+                st.markdown(part.strip())
 
 st.set_page_config(page_title="Math Chat Solver", layout="centered", initial_sidebar_state="collapsed")
 
@@ -68,24 +88,6 @@ st.markdown("""
     .user-msg { background-color: #d1e8ff; color: #000; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; text-align: right; white-space: pre-wrap; }
     .bot-msg { background-color: #ffffff; color: #111; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; text-align: left; white-space: pre-wrap; }
     .centered { display: flex; justify-content: center; align-items: center; flex-direction: column; }
-
-    section[data-testid="stFileUploader"] > div:first-child {
-        display: none !important;
-    }
-
-    .file-upload-icon {
-        font-size: 24px;
-        background: #2c2f35;
-        color: white;
-        padding: 6px 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        text-align: center;
-        transition: background 0.3s;
-    }
-    .file-upload-icon:hover {
-        background: #444850;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -106,61 +108,52 @@ for msg in st.session_state.chat_history:
         if msg["role"] == "assistant":
             response_formatter(msg["content"])
         else:
-            st.markdown(msg["content"])
+            if msg.get("type") == "image" and msg.get("content") is not None:
+                st.image(msg["content"], caption="Uploaded image", use_container_width=True)
+            else:
+                st.markdown(msg["content"])
         st.markdown("</div>", unsafe_allow_html=True)
 
 # === Bottom Input Bar ===
 with st.form("bottom_input_form", clear_on_submit=True):
-    col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
-
+    # Columns for text input + submit button
+    col1, col2 = st.columns([1.65, 0.15])
     with col1:
-        file = st.file_uploader(
-            label="Upload Image",
-            type=["png", "jpg", "jpeg"],
-            label_visibility="collapsed"
-        )
-        st.markdown("""
-            <style>
-                section[data-testid="stFileUploader"] > label {display: none;}
-                section[data-testid="stFileUploader"] > div:first-child {display: none !important;}
-                .custom-upload-icon {
-                    font-size: 24px;
-                    background: #2c2f35;
-                    color: white;
-                    padding: 6px 10px;
-                    border-radius: 6px;
-                    text-align: center;
-                    cursor: pointer;
-                    transition: background 0.3s;
-                }
-                .custom-upload-icon:hover {
-                    background: #444850;
-                }
-            </style>
-            <div class='custom-upload-icon'>📎</div>
-        """, unsafe_allow_html=True)
-
-    with col2:
         text_input = st.text_input(
             label="Math Question Input",
             placeholder="Type your math question...",
             label_visibility="collapsed"
         )
-
-    with col3:
+    with col2:
         submit = st.form_submit_button("⬆️")
+    
+    # File uploader below, full width
+    file = st.file_uploader(
+        "Upload an image (png/jpg/jpeg, max 200MB)",
+        type=["png", "jpg", "jpeg"],
+        label_visibility="collapsed"
+    )
+
+if file is not None:
+    st.success(f"📎 File ready: {file.name} ({file.size} bytes)")
 
 # === Submit Logic ===
 if submit:
     if text_input.strip():
         st.session_state.chat_history.append({"role": "user", "content": text_input})
         sanitized_expr = convert_inline_latex(text_input)
-        result = call_openai_math_solver(
-            f"Solve the following equation step-by-step:\n\n{sanitized_expr}\n\n"
-            "Use LaTeX formatting with $$...$$ where appropriate."
-        )
+        result = call_openai_math_solver(sanitized_expr)
         st.session_state.chat_history.append({"role": "assistant", "content": result})
+        st.rerun()
     elif file:
-        st.session_state.chat_history.append({"role": "user", "content": "🖼 Uploaded image."})
-        result = call_openai_vision_solver(file.read())
+        image_bytes = file.read()
+        st.session_state.chat_history.append({
+            "role": "user",
+            "type": "image",
+            "content": image_bytes
+        })
+        result = call_openai_vision_solver(image_bytes)
         st.session_state.chat_history.append({"role": "assistant", "content": result})
+        st.rerun()
+    else:
+        st.warning("Please enter a math question or upload an image.")
