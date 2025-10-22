@@ -3,6 +3,32 @@ import re
 import base64
 from openai import OpenAI
 
+# === Admin Access Control ===
+# Set your admin password securely in Streamlit secrets
+IS_ADMIN = False
+if "ADMIN_PASS" in st.secrets:
+    password = st.text_input("🔒 Admin password (optional)", type="password", placeholder="Leave blank if not admin")
+    if password == st.secrets["ADMIN_PASS"]:
+        IS_ADMIN = True
+        st.success("✅ Admin mode enabled")
+    else:
+        if password:
+            st.error("❌ Incorrect password — running in user mode")
+
+# Hide Streamlit system stats and footer for non-admins
+if not IS_ADMIN:
+    st.markdown(
+        """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stDeployButton {display: none;}
+        .viewerBadge_link__qRIco {display: none !important;}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
 # ✅ Load API key securely from Streamlit secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
