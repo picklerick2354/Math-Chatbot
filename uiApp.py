@@ -113,8 +113,28 @@ st.markdown("""
     .chat-container { background-color: #f1f2f6; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
     .user-msg { background-color: #d1e8ff; color: #000; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; text-align: right; white-space: pre-wrap; }
     .bot-msg { background-color: #ffffff; color: #111; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; text-align: left; white-space: pre-wrap; }
-    .centered { display: flex; justify-content: center; align-items: center; flex-direction: column; }
+
+    /* 🧠 GitHub brain button */
+    .brain-icon {
+        position: fixed;
+        top: 12px;
+        right: 16px;
+        font-size: 26px;
+        z-index: 9999;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .brain-icon:hover {
+        opacity: 0.75;
+    }
     </style>
+
+    <a class="brain-icon"
+       href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO"
+       target="_blank"
+       title="View on GitHub">
+        🧠
+    </a>
 """, unsafe_allow_html=True)
 
 # === Header ===
@@ -142,7 +162,6 @@ for msg in st.session_state.chat_history:
 
 # === Bottom Input Bar ===
 with st.form("bottom_input_form", clear_on_submit=True):
-    # Columns for text input + submit button
     col1, col2 = st.columns([1.65, 0.15])
     with col1:
         text_input = st.text_input(
@@ -152,8 +171,7 @@ with st.form("bottom_input_form", clear_on_submit=True):
         )
     with col2:
         submit = st.form_submit_button("⬆️")
-    
-    # File uploader below, full width
+
     file = st.file_uploader(
         "Upload an image (png/jpg/jpeg, max 200MB)",
         type=["png", "jpg", "jpeg"],
