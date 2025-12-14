@@ -130,7 +130,7 @@ st.markdown("""
     </style>
 
     <a class="brain-icon"
-       href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO"
+       href="https://github.com/picklerick2354/Math-Chatbot/blob/main/uiApp.py"
        target="_blank"
        title="View on GitHub">
         🧠
@@ -201,6 +201,7 @@ if submit:
         st.rerun()
     else:
         st.warning("Please enter a math question or upload an image.")
+
 
 
 
