@@ -138,8 +138,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # === Header ===
-st.markdown("<h1 class='centered'>      🧮 Snap2Solve</h1>", unsafe_allow_html=True)
-st.markdown("<p class='centered'>       Ask a math question or upload an image and I'll solve it step-by-step using AI.</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='centered'>🧮 Snap2Solve</h1>", unsafe_allow_html=True)
+st.markdown("<p class='centered'>Ask a math question or upload an image and I'll solve it step-by-step using AI.</p>", unsafe_allow_html=True)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -201,5 +201,6 @@ if submit:
         st.rerun()
     else:
         st.warning("Please enter a math question or upload an image.")
+
 
 
